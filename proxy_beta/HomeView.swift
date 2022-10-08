@@ -366,7 +366,7 @@ struct UserCard: View {
                 HStack {
 
                     // User's profile photo
-                    Image(uiImage: self.userCardData.photo).fitToAspectRatio(.square).clipShape(Circle())
+                    Image(uiImage: self.userCardData.photo).fitToAspectRatio(.square)
                     // First name and Age
                     VStack {
                         Text(self.userCardData.name!).frame(width: geometry.size.width * 0.55, alignment: .leading).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).offset(x: 10)
@@ -461,7 +461,7 @@ public struct FitToAspectRatio: ViewModifier {
     
     public func body(content: Content) -> some View {
         ZStack {
-            Circle()
+            Rectangle()
                 .fill(Color(.clear))
                 .aspectRatio(aspectRatio, contentMode: .fit)
 
@@ -469,7 +469,7 @@ public struct FitToAspectRatio: ViewModifier {
                 .scaledToFill()
                 .layoutPriority(-1)
         }
-        .clipped()
+        .clipShape(Circle())
     }
 }
 
