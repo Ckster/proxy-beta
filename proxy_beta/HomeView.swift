@@ -44,7 +44,18 @@ struct HomeView: View {
                 else {
                     VStack {
                         if self.closeUserData.closeUsers.count == 0 {
-                            Text("No users nearby!").padding()
+                            Text("No users nearby!").font(.system(size: 25)).multilineTextAlignment(.center).padding()
+                            Text("Refresh").font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
+                                    // Add the user to active pool
+                                    
+                                    // TODO: Check if user's location permissions are adequete here
+                                    
+                                    // This starts a request and the result is sent to UserLocation didUpdateLocations function,
+                                    // or in the case of an error the UserLocation didFinishWithError function
+                                    locationManager.locationManager.requestLocation()
+                                    
+                                    self.searchEnabled = true
+                                }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
                         }
                         else {
                             CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height, alignment: .center).padding(.top)
@@ -104,6 +115,7 @@ class CloseUserData: ObservableObject {
     
     func findClosestUsers(userLocation: CLLocationCoordinate2D) {
         print("FINDING CLOSEST USERS")
+        self.loading = true
         // Find users within 500m of user
         let radiusInM: Double = 500  // TODO: Make this smaller eventually
         var last: Bool = false
@@ -244,7 +256,7 @@ class UserCardData: Hashable, ObservableObject {
     }
     
     func calcMinimumInfoObtained() {
-        let test = self.name != nil && self.age != nil
+        let test = self.name != nil && self.age != nil && self.photoURL != nil
         self.minimumInfoObtained = test
     }
     

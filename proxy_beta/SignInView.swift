@@ -30,7 +30,7 @@ struct SignInView: View {
                 // TODO: Add new logo here
                 VStack {
                     // Show the app title
-                    Text(TITLE).font(.system(size: 40)).bold().padding()
+                    Text(TITLE).font(.system(size: 40)).bold().padding().foregroundColor(Color("Cyan"))
                     
                     // Show the sign up options
                     BottomScreen(width: geometry.size.width, height: geometry.size.height).environmentObject(self.session)

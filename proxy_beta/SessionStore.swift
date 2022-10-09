@@ -52,6 +52,12 @@ class SessionStore : NSObject, ObservableObject {
     override init() {
         super.init()
         
+        
+        if self.profileInformation == nil {
+            self.profileInformation = UserCardData(uid: self.user.uid!, name: nil, age: nil, photoURL: nil, relationshipStatus: nil, occupation: nil)
+        }
+        
+        
         // Check to see if the user is authenticated
         if self.user.user != nil {
             
@@ -65,11 +71,6 @@ class SessionStore : NSObject, ObservableObject {
                         data, error in
                         print("READ J")
                         if error == nil && data != nil {
-                            
-                            if self.profileInformation == nil {
-                                self.profileInformation = UserCardData(uid: self.user.uid!, name: nil, age: nil, photoURL: nil, relationshipStatus: nil, occupation: nil)
-                            }
-                            
                             self.profileInformation?.syncReadProfileInfo()
                             
                             self.isLoggedIn = .signedIn
@@ -142,7 +143,6 @@ class SessionStore : NSObject, ObservableObject {
             error in
             if error == nil {
                 self.deAuth()
-                self.profileInformation = nil
             }
         })
     }
@@ -224,8 +224,14 @@ class SessionStore : NSObject, ObservableObject {
                     docRef.getDocument { (document, docError) in
                             print("READ N")
                     
-                    // Set the user profile data
-                    self.profileInformation = UserCardData(uid: self.user.uid!, name: nil, age: nil, photoURL: nil, relationshipStatus: nil, occupation: nil)
+                    // Set the user profile data initialized to nil
+                    self.profileInformation = UserCardData(
+                        uid: self.user.uid!,
+                        name: nil,
+                        age: nil,
+                        photoURL: nil,
+                        relationshipStatus: nil,
+                        occupation: nil)
                     
                     // User already exists
                     if let document = document, document.exists {
@@ -239,6 +245,7 @@ class SessionStore : NSObject, ObservableObject {
                         
                     // User's settings need to be initialized in the Firebase
                     else {
+                        print("Creating new User")
                         let user_settings = self.db.collection(Users.name).document(String(user.uid))
                         
                         // Update session to show tutorial completed is false

@@ -101,7 +101,7 @@ struct EditableUserCard: View {
                             
                             // Editable age field
                             // TODO: Enforce numerals only, no decimals
-                            TextField("Age:", text: $age).keyboardType(.decimalPad).textFieldStyle(.roundedBorder).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
+                            TextField("Age:", text: $age).keyboardType(.numberPad).textFieldStyle(.roundedBorder).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
                         
                         }
                     }
@@ -246,26 +246,17 @@ struct ImagePicker: UIViewControllerRepresentable {
                 let url = "gs://proxy-beta-436e8.appspot.com/\(fileName)"
                 let publicURL = "https://storage.googleapis.com/proxy-beta-436e8.appspot.com/\(fileName)"
                 let storageRef = self.parent.storage.reference(forURL: url)
-
                 let data = image.jpegData(compressionQuality: 0.5)
-                // Upload the file to the path "images/rivers.jpg"
-                print("A")
                 if data != nil {
-                    print("B")
                     let uploadTask = storageRef.putData(data!, metadata: nil) { (metadata, error) in
                       guard let metadata = metadata else {
-                        print(error, "D")
-                        // Uh-oh, an error occurred!
                         return
                       }
-                        
                         self.parent.userCardData.writeNewStringValue(attribute: &self.parent.userCardData.photoURL, firebaseRep: Users.fields.PHOTO_URL, newValue: publicURL)
-                        self.parent.userCardData.initializePhoto()
-                        
+                        self.parent.userCardData.photo = image
                     }
                 }
             }
-            
             parent.presentationMode.wrappedValue.dismiss()
         }
     }
