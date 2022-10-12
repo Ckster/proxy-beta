@@ -241,19 +241,19 @@ struct ImagePicker: UIViewControllerRepresentable {
      
             if let image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
                 parent.selectedImage = image
+                self.parent.userCardData.photo = image
                 
                 let fileName = "\(randomString(length: 15)).jpg"
                 let url = "gs://proxy-beta-436e8.appspot.com/\(fileName)"
                 let publicURL = "https://storage.googleapis.com/proxy-beta-436e8.appspot.com/\(fileName)"
                 let storageRef = self.parent.storage.reference(forURL: url)
-                let data = image.jpegData(compressionQuality: 0.5)
+                let data = image.jpegData(compressionQuality: 0.9)
                 if data != nil {
                     let uploadTask = storageRef.putData(data!, metadata: nil) { (metadata, error) in
                       guard let metadata = metadata else {
                         return
                       }
                         self.parent.userCardData.writeNewStringValue(attribute: &self.parent.userCardData.photoURL, firebaseRep: Users.fields.PHOTO_URL, newValue: publicURL)
-                        self.parent.userCardData.photo = image
                     }
                 }
             }

@@ -52,12 +52,6 @@ class SessionStore : NSObject, ObservableObject {
     override init() {
         super.init()
         
-        
-        if self.profileInformation == nil {
-            self.profileInformation = UserCardData(uid: self.user.uid!, name: nil, age: nil, photoURL: nil, relationshipStatus: nil, occupation: nil)
-        }
-        
-        
         // Check to see if the user is authenticated
         if self.user.user != nil {
             
@@ -71,6 +65,11 @@ class SessionStore : NSObject, ObservableObject {
                         data, error in
                         print("READ J")
                         if error == nil && data != nil {
+                            
+                            if self.profileInformation == nil || self.profileInformation!.uid != self.user.uid! {
+                                self.profileInformation = UserCardData(uid: self.user.uid!, name: nil, age: nil, photoURL: nil, relationshipStatus: nil, occupation: nil)
+                            }
+                            
                             self.profileInformation?.syncReadProfileInfo()
                             
                             self.isLoggedIn = .signedIn

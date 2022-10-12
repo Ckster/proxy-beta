@@ -32,7 +32,7 @@ struct SettingsView: View {
                 Button(action: {
                     self.showingSignOut = true
                 }) {
-                    Text("Sign Out").font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.50).padding()
+                    Text("Sign Out").font(.system(size: 25)).bold().foregroundColor(.black).frame(width: geometry.size.width * 0.50, height: geometry.size.height * 0.1).padding()
                 }.alert(isPresented: $showingSignOut) {
                    signOutAlert
                 }.background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan")))

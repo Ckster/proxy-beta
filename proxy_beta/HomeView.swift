@@ -23,7 +23,7 @@ struct HomeView: View {
         GeometryReader {
             geometry in
             if !self.searchEnabled {
-                Text("Go Live").font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
+                Text("Go Live").foregroundColor(.black).font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
                         // Add the user to active pool
                         
                         // TODO: Check if user's location permissions are adequete here
@@ -31,7 +31,7 @@ struct HomeView: View {
                         // This starts a request and the result is sent to UserLocation didUpdateLocations function,
                         // or in the case of an error the UserLocation didFinishWithError function
                         locationManager.locationManager.requestLocation()
-                        
+                        self.closeUserData.loading = true
                         self.searchEnabled = true
                     }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             }
@@ -45,7 +45,7 @@ struct HomeView: View {
                     VStack {
                         if self.closeUserData.closeUsers.count == 0 {
                             Text("No users nearby!").font(.system(size: 25)).multilineTextAlignment(.center).padding()
-                            Text("Refresh").font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
+                            Text("Refresh").foregroundColor(.black).font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
                                     // Add the user to active pool
                                     
                                     // TODO: Check if user's location permissions are adequete here
@@ -53,12 +53,22 @@ struct HomeView: View {
                                     // This starts a request and the result is sent to UserLocation didUpdateLocations function,
                                     // or in the case of an error the UserLocation didFinishWithError function
                                     locationManager.locationManager.requestLocation()
-                                    
+                                    self.closeUserData.loading = true
                                     self.searchEnabled = true
-                                }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                            }.frame(width: geometry.size.width, height: geometry.size.height * 0.7, alignment: .center)
                         }
                         else {
-                            CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height, alignment: .center).padding(.top)
+                            CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height * 0.8, alignment: .center).padding(.top)
+                        }
+                        
+                        Text("Don't show me").foregroundColor(.black).font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
+                            let document = self.db.document("\(Users.name)/\(self.session.user.uid!)")
+                                document.updateData([
+                                    UsersFields.GEOHASH: nil,
+                                    UsersFields.LATITUDE: nil,
+                                    UsersFields.LONGITUDE: nil
+                                ])
+                                self.searchEnabled = false
                         }
                     }
                 }
@@ -80,6 +90,11 @@ struct HomeView: View {
             }
             else {
                 // TODO: Show an error here
+            }
+        })
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification), perform: { _ in
+            if self.searchEnabled {
+                locationManager.locationManager.requestLocation()
             }
         })
     }
@@ -115,7 +130,7 @@ class CloseUserData: ObservableObject {
     
     func findClosestUsers(userLocation: CLLocationCoordinate2D) {
         print("FINDING CLOSEST USERS")
-        self.loading = true
+
         // Find users within 500m of user
         let radiusInM: Double = 500  // TODO: Make this smaller eventually
         var last: Bool = false
@@ -158,8 +173,7 @@ class CloseUserData: ObservableObject {
                     if last && document == documents.last {
                         print("Updating closest users")
                         self.closeUsers = newUserCards
-                        print(newUserCards.first?.occupation, "FIRST")
-                        print(self.closeUsers.first?.occupation, "SECOND")
+
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             self.loading = false
                         }
