@@ -23,12 +23,18 @@ struct ProfileView: View {
             }
             else {
                 VStack {
+                    UserCard(userCardData: self.session.profileInformation!, collapsed: false)
+//                    Button(action: {
+//                        self.editView = true
+//                    }) {
+//                        Image(systemName: "square.and.pencil").foregroundColor(colorScheme == .light ? Color.black : Color.white)
+//                    }.frame(width: geometry.size.width, alignment: .center).font(.system(size: 25)).padding(.top)
                     Button(action: {
                         self.editView = true
                     }) {
-                        Image(systemName: "square.and.pencil").foregroundColor(colorScheme == .light ? Color.black : Color.white)
-                    }.frame(width: geometry.size.width * 0.85, alignment: .trailing).font(.system(size: 25)).padding(.top)
-                    UserCard(userCardData: self.session.profileInformation!, collapsed: false)
+                        Text("Edit Profile").font(.system(size: 25)).bold().foregroundColor(.black).frame(width: geometry.size.width * 0.50, height: geometry.size.height * 0.1).padding()
+                    }.background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("elecBlue")))
+                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
                 }
             }
         }
@@ -39,7 +45,6 @@ struct ProfileView: View {
 struct EditableUserCard: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject var userCardData: UserCardData
-    
     
     @State var name: String = ""
     @State var age: String = ""
@@ -55,7 +60,6 @@ struct EditableUserCard: View {
     @State var instagramApi = InstagramApi.shared
     @State var instagramSignedIn = false
     @State var instagramPresentAuth = false
-    @State var testUserData = InstagramTestUser(access_token: "", user_id: 0)
     
     @Binding var editView: Bool
     
@@ -86,6 +90,10 @@ struct EditableUserCard: View {
                         // Check for occupation change
                         if self.occupation != "" && self.occupation != self.userCardData.occupation {
                             self.userCardData.writeNewStringValue(attribute: &self.userCardData.occupation, firebaseRep: UsersFields.OCCUPATION, newValue: self.occupation)
+                        }
+                        
+                        if self.instagramUser != nil && self.instagramUser!.username != self.userCardData.instagramUsername {
+                            self.userCardData.writeNewStringValue(attribute: &self.userCardData.instagramUsername, firebaseRep: UsersFields.INSTAGRAM_USERNAME, newValue: self.instagramUser!.username)
                         }
                         
                         self.editView = false
@@ -132,20 +140,21 @@ struct EditableUserCard: View {
                         }
                         
                         Button(action: {
-                            if self.testUserData.user_id == 0 {
-                                self.instagramPresentAuth.toggle()
-                              } else {
-                                self.instagramApi.getInstagramUser(testUserData: self.testUserData) { (user) in
-                                  self.instagramUser = user
-                                    print("Instagram User", user.username)
-                                }
-                              }
+                            self.instagramPresentAuth.toggle()
                         }) {
-                            Text("Link Instagram")
+                            HStack {
+                                Image("instagram_logo").resizable().frame(width: geometry.size.width * 0.10, height: geometry.size.width * 0.10)
+                                Text("Link Instagram")
+                            }
                         }
                         
                         if self.instagramUser != nil {
-                            Text(self.instagramUser!.username)
+                            Text("Currently linked: \(self.instagramUser!.username)")
+                        }
+                        else {
+                            if self.userCardData.instagramUsername != nil {
+                                Text("Currently linked: \(self.userCardData.instagramUsername!)")
+                            }
                         }
                     }
                     .animation(.easeOut)
@@ -161,7 +170,7 @@ struct EditableUserCard: View {
             }.sheet(isPresented: $isShowCamera) {
                 ImagePicker(sourceType: .camera, selectedImage: self.$image, userCardData: self.userCardData)
             }.sheet(isPresented: self.$instagramPresentAuth) {
-                WebView(presentAuth: self.$instagramPresentAuth, testUserData: self.$testUserData, instagramApi: self.$instagramApi)
+                WebView(presentAuth: self.$instagramPresentAuth, InstagramUserData: self.$instagramUser, instagramApi: self.$instagramApi)
             }.onTapGesture(perform: {
                 self.isShowMenu = false
             })
@@ -386,10 +395,9 @@ class InstagramApi {
         print("failed callback")
         return
       }
-        
-        let redirectURI = "https://www.google.com/"
-        let clientID = self.instagramAppID
-        let clientSecret = self.app_secret
+            let redirectURI = self.redirectURI
+            let clientID = self.instagramAppID
+            let clientSecret = self.app_secret
             let code = authToken
 
             let urlString = "https://api.instagram.com/oauth/access_token"
@@ -414,59 +422,6 @@ class InstagramApi {
             }
 
             task.resume()
-       
-//      print("AUTH TOKEN", authToken)
-//      let headers = [
-//        "content-type": "multipart/form-data; boundary=\(boundary)"
-//      ]
-//      let parameters = [
-//        [
-//          "name": "app_id",
-//          "value": instagramAppID
-//        ],
-//        [
-//          "name": "app_secret",
-//          "value": app_secret
-//        ],
-//        [
-//          "name": "grant_type",
-//          "value": "authorization_code"
-//        ],
-//        [
-//          "name": "redirect_uri",
-//          "value": redirectURI
-//        ],
-//        [
-//          "name": "code",
-//          "value": authToken
-//        ]
-//      ]
-//      var request = URLRequest(url: URL(string: BaseURL.displayApi.rawValue + Method.access_token.rawValue)!)
-//      print("A", request)
-//      let postData = getFormBody(parameters, boundary)
-//      print("B", postData)
-//      request.httpMethod = "POST"
-//      request.allHTTPHeaderFields = headers
-//      request.httpBody = postData
-//      let session = URLSession.shared
-//      print("Starting data task")
-//      let dataTask = session.dataTask(with: request, completionHandler: {(data, response, error) in
-//        if (error != nil) {
-//          print(error!, "ERROR B")
-//        } else {
-//          do {
-//            print("Parsing JSON")
-//              print(response!)
-//              print(data!)
-//            let jsonData = try JSONDecoder().decode(InstagramTestUser.self, from: data!)
-//            print("D", jsonData)
-//            completion(jsonData)
-//          } catch let error as NSError {
-//            print(error, "ERROR C")
-//          }
-//        }
-//      })
-//      dataTask.resume()
     }
     
     func getInstagramUser(testUserData: InstagramTestUser, completion: @escaping (InstagramUser) -> Void) {

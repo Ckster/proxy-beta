@@ -40,6 +40,7 @@ struct UsersFields {
     static let AGE = "age"
     static let RELATIONSHIP_STATUS = "relationship_status"
     static let OCCUPATION = "occupation"
+    static let INSTAGRAM_USERNAME = "instagram_username"
 }
 
 

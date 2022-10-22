@@ -12,7 +12,7 @@ import WebKit
 struct WebView: UIViewRepresentable {
   //MARK:- Member variables
   @Binding var presentAuth: Bool
-  @Binding var testUserData: InstagramTestUser
+  @Binding var InstagramUserData: InstagramUser?
   @Binding var instagramApi: InstagramApi
   
     
@@ -46,8 +46,16 @@ struct WebView: UIViewRepresentable {
           print("Starting USER REQUEST")
           self.parent.instagramApi.getTestUserIDAndToken(request: request) { (instagramTestUser) in
               print("GOT USER")
-          self.parent.testUserData = instagramTestUser
-          self.parent.presentAuth = false
+              self.parent.presentAuth = false
+              if instagramTestUser.user_id != 0 {
+                  self.parent.instagramApi.getInstagramUser(testUserData: instagramTestUser) { (user) in
+                       self.parent.InstagramUserData = user
+                      }
+              }
+              else {
+                // TODO: Alert the user that there was an error
+            }
+          
           }
           decisionHandler(WKNavigationActionPolicy.allow)
     }

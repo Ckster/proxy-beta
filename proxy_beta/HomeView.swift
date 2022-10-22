@@ -168,7 +168,7 @@ class CloseUserData: ObservableObject {
                     // most will match
                     let distance = GFUtils.distance(from: centerPoint, to: coordinates)
                     if distance <= radiusInM {
-                        newUserCards.append(UserCardData(uid: document.documentID, name: document.get(Users.fields.DISPLAY_NAME) as? String, age: document.get(Users.fields.AGE) as? Int, photoURL: document.get(Users.fields.PHOTO_URL) as? String, relationshipStatus: document.get(Users.fields.RELATIONSHIP_STATUS) as? String, occupation: document.get(Users.fields.OCCUPATION) as? String))
+                        newUserCards.append(UserCardData(uid: document.documentID, name: document.get(Users.fields.DISPLAY_NAME) as? String, age: document.get(Users.fields.AGE) as? Int, photoURL: document.get(Users.fields.PHOTO_URL) as? String, relationshipStatus: document.get(Users.fields.RELATIONSHIP_STATUS) as? String, occupation: document.get(Users.fields.OCCUPATION) as? String, instagramUsername: document.get(Users.fields.INSTAGRAM_USERNAME) as? String))
                     }
                     if last && document == documents.last {
                         print("Updating closest users")
@@ -224,8 +224,9 @@ class UserCardData: Hashable, ObservableObject {
     var photoURL: String?
     var relationshipStatus: String?
     var occupation: String?
+    var instagramUsername: String?
     
-    init (uid: String, name: String?, age: Int?, photoURL: String?, relationshipStatus: String?, occupation: String?) {
+    init (uid: String, name: String?, age: Int?, photoURL: String?, relationshipStatus: String?, occupation: String?, instagramUsername: String?) {
         self.uid = uid
         self.name = name
         self.age = age
@@ -233,6 +234,7 @@ class UserCardData: Hashable, ObservableObject {
         self.initializePhoto()
         self.relationshipStatus = relationshipStatus
         self.occupation = occupation
+        self.instagramUsername = instagramUsername
     }
     
     func initializePhoto() {
@@ -288,6 +290,7 @@ class UserCardData: Hashable, ObservableObject {
                 
                 self.relationshipStatus = doc?.get(Users.fields.RELATIONSHIP_STATUS) as? String
                 self.occupation = doc?.get(Users.fields.OCCUPATION) as? String
+                self.instagramUsername = doc?.get(Users.fields.INSTAGRAM_USERNAME) as? String
             }
         })
     }
@@ -422,6 +425,20 @@ struct UserCard: View {
                                 Text(self.userCardData.occupation!).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 20))
                             }
                         }
+                        
+                        if self.userCardData.instagramUsername != nil {
+                            Button(action: {
+                                let instagramHooks = "instagram://user?username=\(self.userCardData.instagramUsername!)"
+                                let instagramUrl = URL(string: instagramHooks)
+                                if UIApplication.shared.canOpenURL(instagramUrl!) {
+                                  UIApplication.shared.open(instagramUrl!)
+                                } else {
+                                  // TODO: Do something about this error or user does not have instagram
+                                }
+                            }) {
+                                Image("instagram_logo").resizable().frame(width: geometry.size.width * 0.10, height: geometry.size.width * 0.10)
+                            }
+                        }
                     }
                     .animation(.easeOut)
                     .transition(.slide)
@@ -431,7 +448,6 @@ struct UserCard: View {
                         alignment: .leading
                     ).padding()
                 }
-                
             }.contentShape(Rectangle()).onTapGesture {
                 self.collapsed.toggle()
             }
