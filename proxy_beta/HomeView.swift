@@ -23,17 +23,17 @@ struct HomeView: View {
         GeometryReader {
             geometry in
             if !self.searchEnabled {
-                Text("Go Live").foregroundColor(.black).font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
-                        // Add the user to active pool
-                        
-                        // TODO: Check if user's location permissions are adequete here
-                        
-                        // This starts a request and the result is sent to UserLocation didUpdateLocations function,
-                        // or in the case of an error the UserLocation didFinishWithError function
-                        locationManager.locationManager.requestLocation()
-                        self.closeUserData.loading = true
-                        self.searchEnabled = true
-                    }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Go Live", color: Color("Cyan")) {
+                    // Add the user to active pool
+                    
+                    // TODO: Check if user's location permissions are adequete here
+                    
+                    // This starts a request and the result is sent to UserLocation didUpdateLocations function,
+                    // or in the case of an error the UserLocation didFinishWithError function
+                    locationManager.locationManager.requestLocation()
+                    self.closeUserData.loading = true
+                    self.searchEnabled = true
+                }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             }
             else {
                 
@@ -61,7 +61,7 @@ struct HomeView: View {
                             CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height * 0.8, alignment: .center).padding(.top)
                         }
                         
-                        Text("Don't show me").foregroundColor(.black).font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
+                        ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Don't show me", color: Color("Cyan")) {
                             let document = self.db.document("\(Users.name)/\(self.session.user.uid!)")
                                 document.updateData([
                                     UsersFields.GEOHASH: nil,
@@ -524,4 +524,31 @@ public extension Image {
     func fitToAspectRatio(_ aspectRatio: AspectRatio) -> some View {
         self.resizable().modifier(FitToAspectRatio(aspectRatio))
     }
+}
+
+
+struct ActionButton: View {
+    
+    var width: CGFloat
+    var height: CGFloat
+    var label: String
+    var color: Color
+    var action: () -> Void
+    
+    public init (width: CGFloat, height: CGFloat, label: String, color: Color, action: @escaping () -> Void) {
+        self.width = width
+        self.height = height
+        self.label = label
+        self.color = color
+        self.action = action
+    }
+    
+    var body: some View {
+        Button(action: {
+            self.action()
+        }) {
+            Text(self.label).font(.system(size: 25)).bold().foregroundColor(.black).frame(width: self.width * 0.50, height: self.height * 0.05).padding()
+        }.background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(self.color))
+    }
+    
 }

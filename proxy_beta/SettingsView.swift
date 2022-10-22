@@ -29,15 +29,12 @@ struct SettingsView: View {
             geometry in
             ZStack {
                 // Sign out button
-                Button(action: {
+                ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Sign Out", color: Color("Cyan")) {
                     self.showingSignOut = true
-                }) {
-                    Text("Sign Out").font(.system(size: 25)).bold().foregroundColor(.black).frame(width: geometry.size.width * 0.50, height: geometry.size.height * 0.1).padding()
                 }.alert(isPresented: $showingSignOut) {
-                   signOutAlert
-                }.background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan")))
-                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                
+                    signOutAlert
+                }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+            
                 if self.errorText != "" {
                     ErrorView(errorText: $errorText)
                 }
