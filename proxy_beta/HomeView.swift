@@ -44,21 +44,10 @@ struct HomeView: View {
                 else {
                     VStack {
                         if self.closeUserData.closeUsers.count == 0 {
-                            Text("No users nearby!").font(.system(size: 25)).multilineTextAlignment(.center).padding()
-                            Text("Refresh").foregroundColor(.black).font(.system(size: 25)).bold().frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.1).background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color("Cyan"))).onTapGesture {
-                                    // Add the user to active pool
-                                    
-                                    // TODO: Check if user's location permissions are adequete here
-                                    
-                                    // This starts a request and the result is sent to UserLocation didUpdateLocations function,
-                                    // or in the case of an error the UserLocation didFinishWithError function
-                                    locationManager.locationManager.requestLocation()
-                                    self.closeUserData.loading = true
-                                    self.searchEnabled = true
-                            }.frame(width: geometry.size.width, height: geometry.size.height * 0.7, alignment: .center)
+                            NoUsersView(closeUserData: self.closeUserData, searchEnabled: $searchEnabled).frame(height: geometry.size.height * 0.85)
                         }
                         else {
-                            CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height * 0.8, alignment: .center).padding(.top)
+                            CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height * 0.85, alignment: .center).padding(.top)
                         }
                         
                         ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Don't show me", color: Color("Cyan")) {
@@ -115,6 +104,30 @@ struct HomeView: View {
         userRef.updateData(documentData) { error in
             // ...
         }
+    }
+}
+
+struct NoUsersView: View {
+    @ObservedObject var closeUserData: CloseUserData
+    var locationManager = UserLocation.shared
+    @Binding var searchEnabled: Bool
+        
+    var body: some View {
+        ScrollView {
+            PullToRefresh(coordinateSpaceName: "pullToRefresh") {
+                // Add the user to active pool
+                
+                // TODO: Check if user's location permissions are adequete here
+                
+                // This starts a request and the result is sent to UserLocation didUpdateLocations function,
+                // or in the case of an error the UserLocation didFinishWithError function
+                locationManager.locationManager.requestLocation()
+                self.closeUserData.loading = true
+                self.searchEnabled = true
+            }
+            Text("No users nearby!").font(.system(size: 25)).multilineTextAlignment(.center).offset(y: 25)
+        }.coordinateSpace(name: "pullToRefresh")
+        
     }
 }
 
@@ -326,7 +339,7 @@ class UserCardData: Hashable, ObservableObject {
 struct PullToRefresh: View {
     
     var coordinateSpaceName: String
-    var onRefresh: ()->Void
+    var onRefresh: () -> Void
     
     @State var needRefresh: Bool = false
     
@@ -350,8 +363,11 @@ struct PullToRefresh: View {
             }
             HStack {
                 Spacer()
-                if needRefresh {
-                    ProgressView()
+                VStack {
+                    if needRefresh {
+                        ProgressView()
+                    }
+                    Text("Pull to refresh").padding(.top)
                 }
                 Spacer()
             }
@@ -372,9 +388,16 @@ struct CloseUsersListView: View {
                     self.closestUserData.loading = true
                     locationManager.locationManager.requestLocation()
                 }
-                ForEach(self.closestUserData.closeUsers, id:\.self) { user in
-                    if user.name != nil {
-                        UserCard(userCardData: user).frame(width: geometry.size.width, height: geometry.size.height * 0.225).padding()
+               
+                ForEach(self.closestUserData.closeUsers, id:\.self.uid) { user in
+                    VStack {
+                        // TODO: Maybe put some more checks here
+                        if user.name != nil {
+                            UserCard(userCardData: user, geometry: geometry)
+                        }
+                        if user != self.closestUserData.closeUsers.last {
+                            HorizontalLine(color: Color("Cyan"), height: 5)
+                        }
                     }
                 }
             }.coordinateSpace(name: "pullToRefresh")
@@ -386,9 +409,9 @@ struct UserCard: View {
     @ObservedObject var userCardData: UserCardData
     @State var collapsed: Bool = true
     @Environment(\.colorScheme) var colorScheme
+    var geometry: GeometryProxy
     
     var body: some View {
-        GeometryReader {geometry in
             VStack {
                 
                 // Main info that will always be displayed
@@ -407,7 +430,7 @@ struct UserCard: View {
                     minWidth: 0,
                     maxWidth: .infinity,
                     alignment: .leading
-                  ).animation(.easeOut)
+                  )
                 
                 // Extra info that will only be displayed on expanding the view
                 if !self.collapsed {
@@ -436,12 +459,18 @@ struct UserCard: View {
                                   // TODO: Do something about this error or user does not have instagram
                                 }
                             }) {
-                                Image("instagram_logo").resizable().frame(width: geometry.size.width * 0.10, height: geometry.size.width * 0.10)
+                                HStack {
+                                    Image("instagram_logo").resizable().frame(width: geometry.size.width * 0.10, height: geometry.size.width * 0.10)
+                                    if self.userCardData.instagramUsername != nil {
+                                        Text("\(self.userCardData.instagramUsername!)").foregroundColor(Color("Cyan"))
+                                    }
+                                    else {
+                                        Text("Link Instagram").foregroundColor(Color("Cyan"))
+                                    }
+                                }
                             }
                         }
                     }
-                    .animation(.easeOut)
-                    .transition(.slide)
                     .frame(
                         minWidth: 0,
                         maxWidth: .infinity,
@@ -451,7 +480,6 @@ struct UserCard: View {
             }.contentShape(Rectangle()).onTapGesture {
                 self.collapsed.toggle()
             }
-        }
     }
 }
 

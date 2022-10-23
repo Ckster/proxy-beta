@@ -41,7 +41,7 @@ struct ContentView: View {
                                     .tabItem {
                                         Label("Settings", systemImage: "gearshape")
                                     }
-                                }
+                                }.accentColor(Color("Cyan"))
                         case false :
                             OnboardingView().environmentObject(self.session)
                         default :
