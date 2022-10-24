@@ -28,9 +28,10 @@ struct OnboardingView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                Color.black.ignoresSafeArea()
                 VStack {
                     
-                    Text("Please fill in some information about yourself").foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25))
+                    Text("Please fill in some information about yourself").foregroundColor(.white).font(.system(size: 25))
                     
                     // Main info that will always be displayed
                     HStack {
@@ -50,12 +51,12 @@ struct OnboardingView: View {
                         // First name and age
                         VStack {
                             // Editable name field
-                            TextField("First name:", text: $name).disableAutocorrection(true).frame(width: geometry.size.width * 0.55, alignment: .leading).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25))
+                            TextField("First name:", text: $name).disableAutocorrection(true).frame(width: geometry.size.width * 0.55, alignment: .leading).foregroundColor(.white).font(.system(size: 25))
                                 .textFieldStyle(.roundedBorder)
                             
                             // Editable age field
                             // TODO: Enforce numerals only, no decimals
-                            TextField("Age:", text: $age).keyboardType(.numberPad).textFieldStyle(.roundedBorder).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
+                            TextField("Age:", text: $age).keyboardType(.numberPad).textFieldStyle(.roundedBorder).foregroundColor(.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
                         
                         }
                     }
@@ -67,14 +68,14 @@ struct OnboardingView: View {
                             Image(systemName: "heart")
                             Picker(selection: $relationshipStatus, label: Text("Relationship Status")) {
                                 ForEach(relationshipStatuses, id: \.self) {
-                                    Text($0).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 20)).tag(relationshipStatuses.firstIndex(of: $0))
+                                    Text($0).foregroundColor(.white).font(.system(size: 20)).tag(relationshipStatuses.firstIndex(of: $0))
                                 }
                             }.pickerStyle(WheelPickerStyle())
                         }
                       
                         HStack {
                             Image(systemName: "briefcase")
-                            TextField("Job:", text: $occupation).textFieldStyle(.roundedBorder).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
+                            TextField("Job:", text: $occupation).textFieldStyle(.roundedBorder).foregroundColor(.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
                         }
                     }
                     .animation(.easeOut)
@@ -131,7 +132,7 @@ struct OnboardingView: View {
                         self.session.profileInformation!.minimumInfoObtained = true
                         
                     }, label: {
-                        Text("Done").foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25))
+                        Text("Done").foregroundColor(.white).font(.system(size: 25))
                     }).padding()
                     
                 }

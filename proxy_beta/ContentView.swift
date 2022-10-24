@@ -22,7 +22,7 @@ struct ContentView: View {
                         case nil :
                             Text("Loading")
                             .onAppear(perform: {
-                                    self.session.profileInformation!.syncReadProfileInfo()
+                                self.session.profileInformation!.syncReadProfileInfo()
                             })
                         
                         case true :

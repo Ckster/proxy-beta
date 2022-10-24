@@ -12,52 +12,61 @@ import GeoFire
 import CoreLocation
 
 
+let radiusInM: Double = 10  // TODO: Make this smaller eventually
+
+
 struct HomeView: View {
     var locationManager = UserLocation.shared
     var db = Firestore.firestore()
     @EnvironmentObject var session: SessionStore
     @ObservedObject var closeUserData: CloseUserData
-    @State var searchEnabled: Bool = false
     
     var body: some View {
         GeometryReader {
             geometry in
-            if !self.searchEnabled {
-                ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Go Live", color: Color("Cyan")) {
-                    // Add the user to active pool
-                    
-                    // TODO: Check if user's location permissions are adequete here
-                    
-                    // This starts a request and the result is sent to UserLocation didUpdateLocations function,
-                    // or in the case of an error the UserLocation didFinishWithError function
-                    locationManager.locationManager.requestLocation()
-                    self.closeUserData.loading = true
-                    self.searchEnabled = true
-                }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+            if !self.locationManager.searchEnabled {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Go Live", color: Color("Cyan")) {
+                        // Add the user to active pool
+                        
+                        // TODO: Check if user's location permissions are adequete here
+                        
+                        // This starts a request and the result is sent to UserLocation didUpdateLocations function,
+                        // or in the case of an error the UserLocation didFinishWithError function
+                        locationManager.locationManager.requestLocation()
+                        self.closeUserData.loading = true
+                        self.locationManager.searchEnabled = true
+                    }.frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                }
             }
             else {
-                
-                if self.closeUserData.loading {
-                    LottieView(name: "82418-searching-animation")
-                }
-                
-                else {
-                    VStack {
-                        if self.closeUserData.closeUsers.count == 0 {
-                            NoUsersView(closeUserData: self.closeUserData, searchEnabled: $searchEnabled).frame(height: geometry.size.height * 0.85)
-                        }
-                        else {
-                            CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height * 0.85, alignment: .center).padding(.top)
-                        }
-                        
-                        ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Don't show me", color: Color("Cyan")) {
-                            let document = self.db.document("\(Users.name)/\(self.session.user.uid!)")
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    if self.closeUserData.loading {
+                        LottieView(name: "82418-searching-animation")
+                    }
+                    
+                    else {
+                        VStack {
+                            if self.closeUserData.closeUsers.count == 0 {
+                                NoUsersView(closeUserData: self.closeUserData).frame(height: geometry.size.height * 0.85)
+                            }
+                            else {
+                                CloseUsersListView(closestUserData: self.closeUserData).frame(width: geometry.size.width, height: geometry.size.height * 0.85, alignment: .center).padding(.top)
+                            }
+                            
+                            ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Don't show me", color: Color("Cyan")) {
+                                let document = self.db.document("\(Users.name)/\(self.session.user.uid!)")
                                 document.updateData([
                                     UsersFields.GEOHASH: nil,
                                     UsersFields.LATITUDE: nil,
                                     UsersFields.LONGITUDE: nil
                                 ])
-                                self.searchEnabled = false
+                                self.locationManager.searchEnabled = false
+                                self.locationManager.removeRegisteredRegions()
+                            }
                         }
                     }
                 }
@@ -67,23 +76,27 @@ struct HomeView: View {
         .onReceive(locationManager.$userLocation, perform: { newLocation in
             print("RECEIVED NEW LOCATION MN")
             if newLocation != nil {
+                // Get rid of all existing geofences
+                self.locationManager.removeRegisteredRegions()
+                
+                // Register the new region so that when the user leaves the area they are in they are no longer findable by others
+                self.locationManager.registerRegionAtLocation(center: newLocation!, radius: radiusInM, uid: self.session.user.uid!)
+                
                 print("RECEIVED NEW LOCATION")
                 // When this is done the closestUsers list will be updated and we can show the results
                 self.closeUserData.findClosestUsers(userLocation: newLocation!)
                 
                 // Don't need to wait for this to finish really ... updates the user's geohash and shows that they are broadcasting themselves
                 self.activateUserDocument(userLocation: newLocation!)
-                
-                // TODO: Need a function that adds this new user to the user's that is is near
-                
             }
             else {
                 // TODO: Show an error here
             }
         })
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification), perform: { _ in
-            if self.searchEnabled {
-                locationManager.locationManager.requestLocation()
+            // This is just to refresh the list of nearby users
+            if self.locationManager.searchEnabled && self.locationManager.userLocation != nil {
+                self.closeUserData.findClosestUsers(userLocation: self.locationManager.userLocation!)
             }
         })
     }
@@ -110,7 +123,6 @@ struct HomeView: View {
 struct NoUsersView: View {
     @ObservedObject var closeUserData: CloseUserData
     var locationManager = UserLocation.shared
-    @Binding var searchEnabled: Bool
         
     var body: some View {
         ScrollView {
@@ -123,11 +135,10 @@ struct NoUsersView: View {
                 // or in the case of an error the UserLocation didFinishWithError function
                 locationManager.locationManager.requestLocation()
                 self.closeUserData.loading = true
-                self.searchEnabled = true
+                self.locationManager.searchEnabled = true
             }
             Text("No users nearby!").font(.system(size: 25)).multilineTextAlignment(.center).offset(y: 25)
         }.coordinateSpace(name: "pullToRefresh")
-        
     }
 }
 
@@ -145,7 +156,7 @@ class CloseUserData: ObservableObject {
         print("FINDING CLOSEST USERS")
 
         // Find users within 500m of user
-        let radiusInM: Double = 500  // TODO: Make this smaller eventually
+        
         var last: Bool = false
 
         // Each item in 'bounds' represents a startAt/endAt pair. We have to issue
@@ -421,9 +432,9 @@ struct UserCard: View {
                     Image(uiImage: self.userCardData.photo).fitToAspectRatio(.square)
                     // First name and Age
                     VStack {
-                        Text(self.userCardData.name!).frame(width: geometry.size.width * 0.55, alignment: .leading).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).offset(x: 10)
+                        Text(self.userCardData.name!).frame(width: geometry.size.width * 0.55, alignment: .leading).foregroundColor(Color("Cyan")).font(.system(size: 30)).offset(x: 10)
                         if self.userCardData.age != nil {
-                            Text(String(self.userCardData.age!)).bold().foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).frame(width: geometry.size.width * 0.55, alignment: .leading).offset(x: 10)
+                            Text(String(self.userCardData.age!)).bold().foregroundColor(Color("Cyan")).font(.system(size: 30)).frame(width: geometry.size.width * 0.55, alignment: .leading).offset(x: 10)
                         }
                     }
                 }.frame(
@@ -437,15 +448,15 @@ struct UserCard: View {
                     VStack(alignment: .leading) {
                         if self.userCardData.relationshipStatus != nil && self.userCardData.relationshipStatus != "Don't show" {
                             HStack {
-                                Image(systemName: "heart")
-                                Text(self.userCardData.relationshipStatus!).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 20))
+                                Image(systemName: "heart").foregroundColor(.white)
+                                Text(self.userCardData.relationshipStatus!).foregroundColor(.white).font(.system(size: 20))
                             }
                         }
                        
                         if self.userCardData.occupation != nil {
                             HStack {
-                                Image(systemName: "briefcase")
-                                Text(self.userCardData.occupation!).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 20))
+                                Image(systemName: "briefcase").foregroundColor(.white)
+                                Text(self.userCardData.occupation!).foregroundColor(.white).font(.system(size: 20))
                             }
                         }
                         

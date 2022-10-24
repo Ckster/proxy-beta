@@ -27,6 +27,7 @@ class UserLocation: NSObject, CLLocationManagerDelegate {
     var updateTimestamp: Timestamp = Timestamp.init(date:Date.init(timeIntervalSince1970: TimeInterval(0)))
     var first: Bool = true
     @Published var userLocation: CLLocationCoordinate2D? = nil
+    @Published var searchEnabled: Bool = false
     
     override init() {
         locationManager = CLLocationManager()
@@ -80,14 +81,39 @@ class UserLocation: NSObject, CLLocationManagerDelegate {
 //                self.updateLocationFlags(region: region, crossing: Crossing(localFirebaseRep: crossing, appRep: "", project: Project(firebaseRep: project, appRep: "")), flag: true)
 //        }
 //    }
-//
-//    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-//        if let region = region as? CLCircularRegion {
-//            let project = String(region.identifier.split(separator: "*")[0])
-//            let crossing = String(region.identifier.split(separator: "*")[1])
-//            self.updateLocationFlags(region: region, crossing: Crossing(localFirebaseRep: crossing, appRep: "", project: Project(firebaseRep: project, appRep: "")), flag: false)
-//        }
-//    }
+
+    func removeRegisteredRegions() {
+        for region in self.locationManager.monitoredRegions {
+            self.locationManager.stopMonitoring(for: region)
+        }
+    }
+    
+    func registerRegionAtLocation(center: CLLocationCoordinate2D, radius: Double, uid: String) {
+        // Make sure the devices supports region monitoring.
+        if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) {
+            print("ADDING GEOFENCE")
+            // Define the geofence region. Use the user's uid so that when the didExitRegion fires the database can be updated
+            let region = CLCircularRegion(center: center, radius: radius, identifier: uid)
+            region.notifyOnEntry = true
+            region.notifyOnExit = true
+            self.locationManager.startMonitoring(for: region)
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        self.searchEnabled = false
+        let uid = region.identifier
+        let document = self.db.document("\(Users.name)/\(uid)")
+        if let region = region as? CLCircularRegion {
+            document.updateData([
+                UsersFields.GEOHASH: nil,
+                UsersFields.LATITUDE: nil,
+                UsersFields.LONGITUDE: nil,
+                "Geofence": Timestamp()
+            ])
+            self.locationManager.stopMonitoring(for: region)
+        }
+    }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         print("GETTING LOCATION")

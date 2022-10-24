@@ -28,6 +28,7 @@ struct SettingsView: View {
         GeometryReader {
             geometry in
             ZStack {
+                Color.black.ignoresSafeArea()
                 // Sign out button
                 ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Sign Out", color: Color("Cyan")) {
                     self.showingSignOut = true

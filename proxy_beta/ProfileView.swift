@@ -16,17 +16,21 @@ struct ProfileView: View {
     @State var editView: Bool = false
     
     var body: some View {
+        
         GeometryReader {
             geometry in
-            if self.editView {
-                EditableUserCard(userCardData: self.session.profileInformation!, editView: $editView, geometry: geometry)
-            }
-            else {
-                VStack {
-                    UserCard(userCardData: self.session.profileInformation!, collapsed: false, geometry: geometry).frame(height: geometry.size.height * 0.58, alignment: .top)
-                    ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Edit Profile", color: Color("Cyan")) {
-                        self.editView = true
-                    }.frame(height: geometry.size.height * 0.33, alignment: .bottom)
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if self.editView {
+                    EditableUserCard(userCardData: self.session.profileInformation!, editView: $editView, geometry: geometry)
+                }
+                else {
+                    VStack {
+                        UserCard(userCardData: self.session.profileInformation!, collapsed: false, geometry: geometry).frame(height: geometry.size.height * 0.58, alignment: .top)
+                        ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Edit Profile", color: Color("Cyan")) {
+                            self.editView = true
+                        }.frame(height: geometry.size.height * 0.33, alignment: .bottom)
+                    }
                 }
             }
         }
@@ -56,43 +60,46 @@ struct EditableUserCard: View {
     let geometry: GeometryProxy
     
     var body: some View {
-        VStack {
-            // Main info that will always be displayed
-            EditableCardMain(userCardData: self.userCardData, name: $name, age: $age, isShowImageMenu: $isShowImageMenu, isShowPhotoLibrary: $isShowPhotoLibrary, isShowCamera: $isShowCamera, geometry: geometry).frame(height: geometry.size.height * 0.25, alignment: .center)
-            
-            // Extra information
-            EditableCardExtra(userCardData: self.userCardData, relationshipStatus: $relationshipStatus, occupation: $occupation, instagramPresentAuth: $instagramPresentAuth, instagramUser: $instagramUser, geometry: geometry).frame(height: geometry.size.height * 0.33, alignment: .top)
-            
-            ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Done", color: Color("Cyan")) {
-                let intAge = Int(self.age)
-
-                // Check for name change
-                if self.validName(name: self.name) && self.name != self.userCardData.name {
-                    self.userCardData.writeNewStringValue(attribute: &self.userCardData.name, firebaseRep: UsersFields.DISPLAY_NAME, newValue: self.name)
+            VStack {
+                ScrollView {
+                    // Main info that will always be displayed
+                    EditableCardMain(userCardData: self.userCardData, name: $name, age: $age, isShowImageMenu: $isShowImageMenu, isShowPhotoLibrary: $isShowPhotoLibrary, isShowCamera: $isShowCamera, geometry: geometry).frame(height: geometry.size.height * 0.45, alignment: .bottom)
+                    
+                    // Extra information
+                    EditableCardExtra(userCardData: self.userCardData, relationshipStatus: $relationshipStatus, occupation: $occupation, instagramPresentAuth: $instagramPresentAuth, instagramUser: $instagramUser, geometry: geometry).frame(height: geometry.size.height * 0.45, alignment: .top)
                 }
-
-                // Check for age change
-                if intAge != nil && self.validAge(age: intAge!) && intAge! != self.userCardData.age! {
-                    self.userCardData.writeNewIntValue(attribute: &self.userCardData.age, firebaseRep: UsersFields.AGE, newValue: intAge)
-                }
-
-                // Check for relationship status change
-                if self.relationshipStatus != "" && self.relationshipStatus != self.userCardData.relationshipStatus {
-                    self.userCardData.writeNewStringValue(attribute: &self.userCardData.relationshipStatus, firebaseRep: UsersFields.RELATIONSHIP_STATUS, newValue: self.relationshipStatus)
-                }
-
-                // Check for occupation change
-                if self.occupation != "" && self.occupation != self.userCardData.occupation {
-                    self.userCardData.writeNewStringValue(attribute: &self.userCardData.occupation, firebaseRep: UsersFields.OCCUPATION, newValue: self.occupation)
-                }
-
-                if self.instagramUser != nil && self.instagramUser!.username != self.userCardData.instagramUsername {
-                    self.userCardData.writeNewStringValue(attribute: &self.userCardData.instagramUsername, firebaseRep: UsersFields.INSTAGRAM_USERNAME, newValue: self.instagramUser!.username)
-                }
-
-                self.editView = false
-            }.frame(height: geometry.size.height * 0.33, alignment: .bottom)
-        }
+                
+                ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Done", color: Color("Cyan")) {
+                    let intAge = Int(self.age)
+                    
+                    // Check for name change
+                    if self.validName(name: self.name) && self.name != self.userCardData.name {
+                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.name, firebaseRep: UsersFields.DISPLAY_NAME, newValue: self.name)
+                    }
+                    
+                    // Check for age change
+                    if intAge != nil && self.validAge(age: intAge!) && intAge! != self.userCardData.age! {
+                        self.userCardData.writeNewIntValue(attribute: &self.userCardData.age, firebaseRep: UsersFields.AGE, newValue: intAge)
+                    }
+                    
+                    // Check for relationship status change
+                    if self.relationshipStatus != "" && self.relationshipStatus != self.userCardData.relationshipStatus {
+                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.relationshipStatus, firebaseRep: UsersFields.RELATIONSHIP_STATUS, newValue: self.relationshipStatus)
+                    }
+                    
+                    // Check for occupation change
+                    if self.occupation != "" && self.occupation != self.userCardData.occupation {
+                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.occupation, firebaseRep: UsersFields.OCCUPATION, newValue: self.occupation)
+                    }
+                    
+                    if self.instagramUser != nil && self.instagramUser!.username != self.userCardData.instagramUsername {
+                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.instagramUsername, firebaseRep: UsersFields.INSTAGRAM_USERNAME, newValue: self.instagramUser!.username)
+                    }
+                    
+                    self.editView = false
+                }.frame(width: geometry.size.width, height: geometry.size.height * 0.10, alignment: .center)
+            }
+        
         .if(self.isShowImageMenu) { view in
             // Blur the background when the completion animation is showing
             view.blur(radius: CGFloat(10))
@@ -190,23 +197,25 @@ struct EditableCardMain: View {
     let geometry: GeometryProxy
     
     var body: some View {
-        HStack {
+        VStack {
             Image(uiImage: self.userCardData.photo).fitToAspectRatio(.square).clipShape(Circle()).onTapGesture(perform: {
                 self.isShowImageMenu.toggle()
             })
             
-            // First name and age
-            VStack {
+            VStack(alignment: .leading) {
+                // First name and age
+                
                 // Editable name field
-                Text("First name").frame(width: geometry.size.width * 0.55, alignment: .leading)
-                TextField(self.userCardData.name!, text: $name).disableAutocorrection(true).frame(width: geometry.size.width * 0.55, alignment: .leading).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25))
-                    .textFieldStyle(.roundedBorder)
+                //Text("First name").frame(width: geometry.size.width, alignment: .leading).foregroundColor(.white)
+                NeumorphicStyleTextField(textField: TextField("", text: $name), imageName: nil, textBinding: $name, placeholderText: self.userCardData.name!, autoCorrect: false).frame(width: geometry.size.width * 0.5)
                 
                 // Editable age field
                 // TODO: Enforce numerals only, no decimals
-                Text("Age").frame(width: geometry.size.width * 0.55, alignment: .leading)
-                TextField(String(self.userCardData.age!), text: $age).keyboardType(.numberPad).textFieldStyle(.roundedBorder).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
-            }
+                //Text("Age").frame(width: geometry.size.width, alignment: .leading).foregroundColor(.white)
+                // TODO: Put a number picker in here instead and just show the age as a button
+                TextField(String(self.userCardData.age!), text: $age).keyboardType(.numberPad).textFieldStyle(.roundedBorder).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
+                //NeumorphicStyleTextField(textField: <#T##TextField<Text>#>, imageName: <#T##String?#>, textBinding: <#T##Binding<String>#>, placeholderText: <#T##String#>)
+            }.padding(.leading)
         }.sheet(isPresented: $isShowPhotoLibrary) {
             ImagePicker(sourceType: .photoLibrary, selectedImage: self.$image, userCardData: self.userCardData)
         }.sheet(isPresented: $isShowCamera) {
@@ -231,19 +240,16 @@ struct EditableCardExtra: View {
         // TODO: Add options for removing extra info
         VStack(alignment: .leading) {
             HStack {
-                Image(systemName: "heart")
+                Image(systemName: "heart").foregroundColor(.white)
                 Picker(selection: $relationshipStatus, label: Text("Relationship Status")) {
                     ForEach(relationshipStatuses, id: \.self) {
-                        Text($0).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 20)).tag(relationshipStatuses.firstIndex(of: $0))
+                        Text($0).foregroundColor(.white).font(.system(size: 20)).tag(relationshipStatuses.firstIndex(of: $0))
                     }
                 }.pickerStyle(WheelPickerStyle())
             }
             
-            HStack {
-                Image(systemName: "briefcase")
-                TextField(self.userCardData.occupation ?? "Job", text: $occupation).textFieldStyle(.roundedBorder).foregroundColor(colorScheme == .light ? Color.black : Color.white).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
-            }
-            
+            NeumorphicStyleTextField(textField: TextField("", text: $occupation), imageName: "briefcase", textBinding: $occupation, placeholderText: self.userCardData.occupation ?? "Job").frame(width: geometry.size.width * 0.5).padding(.leading).padding(.bottom)
+                    
             Button(action: {
                 self.instagramPresentAuth.toggle()
             }) {
@@ -261,7 +267,7 @@ struct EditableCardExtra: View {
                             Text("Link Instagram").foregroundColor(Color("Cyan"))
                         }
                     }
-                }
+                }.padding(.leading)
             }
         }.sheet(isPresented: self.$instagramPresentAuth) {
             WebView(presentAuth: self.$instagramPresentAuth, InstagramUserData: self.$instagramUser, instagramApi: self.$instagramApi)
@@ -506,4 +512,46 @@ extension UIApplication {
     func endEditing() {
         sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
+}
+
+
+extension Color {
+    static let lightShadow = Color(red: 255 / 255, green: 255 / 255, blue: 255 / 255)
+    static let darkShadow = Color(red: 163 / 255, green: 177 / 255, blue: 198 / 255)
+    static let background = Color(red: 224 / 255, green: 229 / 255, blue: 236 / 255)
+    static let neumorphictextColor = Color(red: 132 / 255, green: 132 / 255, blue: 132 / 255)
+}
+
+
+struct NeumorphicStyleTextField: View {
+    var textField: TextField<Text>
+    var imageName: String?
+    @Binding var textBinding: String
+    let placeholderText: String
+    var autoCorrect: Bool
+    
+    init(textField: TextField<Text>, imageName: String?, textBinding: Binding<String>, placeholderText: String, autoCorrect: Bool = true) {
+        self.textField = textField
+        self.imageName = imageName
+        _textBinding = textBinding
+        self.placeholderText = placeholderText
+        self.autoCorrect = autoCorrect
+    }
+    
+    var body: some View {
+        HStack {
+            if imageName != nil {
+                Image(systemName: imageName!)
+                    .foregroundColor(.darkShadow)
+            }
+            textField.placeholder(when: textBinding.isEmpty) {Text(self.placeholderText).foregroundColor(.gray)}.autocorrectionDisabled(!autoCorrect)
+            }
+            .padding()
+            .foregroundColor(.white)
+            .background(Color.black)
+            .cornerRadius(6)
+            .shadow(color: Color("Cyan"), radius: 3, x: 2, y: 2)
+            .shadow(color: Color("Cyan"), radius: 3, x: -2, y: -2)
+
+        }
 }
