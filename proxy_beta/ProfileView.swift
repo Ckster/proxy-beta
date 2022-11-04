@@ -16,11 +16,10 @@ struct ProfileView: View {
     @State var editView: Bool = false
     
     var body: some View {
-        
         GeometryReader {
             geometry in
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.black
                 if self.editView {
                     EditableUserCard(userCardData: self.session.profileInformation!, editView: $editView, geometry: geometry)
                 }
@@ -44,8 +43,8 @@ struct EditableUserCard: View {
     
     @State var name: String = ""
     @State var age: String = ""
-    @State var relationshipStatus: String = ""
     @State var occupation: String = ""
+    @State var company: String = ""
     
     @State var instagramAlert: Bool = false
     @State var instagramUser: InstagramUser? = nil
@@ -63,41 +62,45 @@ struct EditableUserCard: View {
             VStack {
                 ScrollView {
                     // Main info that will always be displayed
-                    EditableCardMain(userCardData: self.userCardData, name: $name, age: $age, isShowImageMenu: $isShowImageMenu, isShowPhotoLibrary: $isShowPhotoLibrary, isShowCamera: $isShowCamera, geometry: geometry).frame(height: geometry.size.height * 0.45, alignment: .bottom)
+                    EditableCardMain(userCardData: self.userCardData, name: $name, isShowImageMenu: $isShowImageMenu, isShowPhotoLibrary: $isShowPhotoLibrary, isShowCamera: $isShowCamera, occupation: $occupation, company: $company, geometry: geometry).padding(.bottom)
+                    
+                    //.frame(width: geometry.size.width, height: geometry.size.height * 0.45, alignment: .bottom)
                     
                     // Extra information
-                    EditableCardExtra(userCardData: self.userCardData, relationshipStatus: $relationshipStatus, occupation: $occupation, instagramPresentAuth: $instagramPresentAuth, instagramUser: $instagramUser, geometry: geometry).frame(height: geometry.size.height * 0.45, alignment: .top)
+                    EditableCardExtra(userCardData: self.userCardData, instagramPresentAuth: $instagramPresentAuth, instagramUser: $instagramUser, geometry: geometry).padding(.bottom).padding(.top)
+                    
+                    //.frame(height: geometry.size.height * 0.45, alignment: .top)
+                    
+                    
+                    ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Done", color: Color("Cyan")) {
+                        let intAge = Int(self.age)
+                        
+                        // Check for name change
+                        if self.validName(name: self.name) && self.name != self.userCardData.name {
+                            self.userCardData.writeNewStringValue(attribute: &self.userCardData.name, firebaseRep: UsersFields.DISPLAY_NAME, newValue: self.name)
+                        }
+                        
+                        // Check for age change
+                        if intAge != nil && self.validAge(age: intAge!) && intAge! != self.userCardData.age! {
+                            self.userCardData.writeNewIntValue(attribute: &self.userCardData.age, firebaseRep: UsersFields.AGE, newValue: intAge)
+                        }
+                        
+                        // Check for occupation change
+                        if self.occupation != "" && self.occupation != self.userCardData.occupation {
+                            self.userCardData.writeNewStringValue(attribute: &self.userCardData.occupation, firebaseRep: UsersFields.OCCUPATION, newValue: self.occupation)
+                        }
+                        
+                        if self.company != "" && self.company != self.userCardData.company {
+                            self.userCardData.writeNewStringValue(attribute: &self.userCardData.company, firebaseRep: UsersFields.COMPANY, newValue: self.company)
+                        }
+                        
+                        if self.instagramUser != nil && self.instagramUser!.username != self.userCardData.instagramUsername {
+                            self.userCardData.writeNewStringValue(attribute: &self.userCardData.instagramUsername, firebaseRep: UsersFields.INSTAGRAM_USERNAME, newValue: self.instagramUser!.username)
+                        }
+                        
+                        self.editView = false
+                    }//.frame(width: geometry.size.width, height: geometry.size.height * 0.10, alignment: .center)
                 }
-                
-                ActionButton(width: geometry.size.width, height: geometry.size.height, label: "Done", color: Color("Cyan")) {
-                    let intAge = Int(self.age)
-                    
-                    // Check for name change
-                    if self.validName(name: self.name) && self.name != self.userCardData.name {
-                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.name, firebaseRep: UsersFields.DISPLAY_NAME, newValue: self.name)
-                    }
-                    
-                    // Check for age change
-                    if intAge != nil && self.validAge(age: intAge!) && intAge! != self.userCardData.age! {
-                        self.userCardData.writeNewIntValue(attribute: &self.userCardData.age, firebaseRep: UsersFields.AGE, newValue: intAge)
-                    }
-                    
-                    // Check for relationship status change
-                    if self.relationshipStatus != "" && self.relationshipStatus != self.userCardData.relationshipStatus {
-                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.relationshipStatus, firebaseRep: UsersFields.RELATIONSHIP_STATUS, newValue: self.relationshipStatus)
-                    }
-                    
-                    // Check for occupation change
-                    if self.occupation != "" && self.occupation != self.userCardData.occupation {
-                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.occupation, firebaseRep: UsersFields.OCCUPATION, newValue: self.occupation)
-                    }
-                    
-                    if self.instagramUser != nil && self.instagramUser!.username != self.userCardData.instagramUsername {
-                        self.userCardData.writeNewStringValue(attribute: &self.userCardData.instagramUsername, firebaseRep: UsersFields.INSTAGRAM_USERNAME, newValue: self.instagramUser!.username)
-                    }
-                    
-                    self.editView = false
-                }.frame(width: geometry.size.width, height: geometry.size.height * 0.10, alignment: .center)
             }
         
         .if(self.isShowImageMenu) { view in
@@ -128,7 +131,6 @@ struct EditableUserCard: View {
     func validAge(age: Int) -> Bool {
         return age < 18 || age < 100
     }
-    
 }
 
 
@@ -186,49 +188,132 @@ struct EditableCardMain: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject var userCardData: UserCardData
     
+    
     @Binding var name: String
-    @Binding var age: String
     @Binding var isShowImageMenu: Bool
     @Binding var isShowPhotoLibrary: Bool
     @Binding var isShowCamera: Bool
+    
+    @Binding var occupation: String
+    @Binding var company: String
+    
+    @State var schoolQuery: String = ""
+    @State var schoolList: [School] = []
+    @State var isShowSchools: Bool = false
+    
+    @State var isShowRelationship = false
         
     @State private var image = UIImage()
     
     let geometry: GeometryProxy
     
     var body: some View {
-        VStack {
-            Image(uiImage: self.userCardData.photo).fitToAspectRatio(.square).clipShape(Circle()).onTapGesture(perform: {
+        VStack(alignment: .leading) {
+            Image(uiImage: self.userCardData.photo).fitToAspectRatio(.square).clipShape(Circle()).shadow(color: Color("Cyan"), radius: 7).frame(height: geometry.size.height * 0.25).onTapGesture(perform: {
                 self.isShowImageMenu.toggle()
-            })
+            }).padding(.bottom, 10)
+
+            // Editable name field
+            NeumorphicStyleTextField(textField: TextField("", text: $name), sfName: "person.text.rectangle", imageName: nil, textBinding: $name, placeholderText: self.userCardData.name!, autoCorrect: false).frame(width: geometry.size.width * 0.95).padding(.bottom, 7)
+
+            NeumorphicStyleTextField(textField: TextField("", text: $occupation), sfName: "briefcase", imageName: nil, textBinding: $occupation, placeholderText: self.userCardData.occupation ?? "Job").frame(width: geometry.size.width * 0.95).padding(.bottom, 7)
+
+            NeumorphicStyleTextField(textField: TextField("", text: $company), sfName: "building", imageName: nil, textBinding: $company, placeholderText: self.userCardData.company ?? "Company").frame(width: geometry.size.width * 0.95).padding(.bottom, 7)
             
-            VStack(alignment: .leading) {
-                // First name and age
+            NeumorphicStyleButton(sfName: "graduationcap", imageName: nil, placeholderText: self.userCardData.school ?? "School", geometry: geometry).frame(width: geometry.size.width * 0.95, alignment: .leading).onTapGesture {
+                self.isShowSchools = true
+            }.padding(.bottom, 7)
+            
+            NeumorphicStyleButton(sfName: "heart", imageName: nil, placeholderText: self.userCardData.relationshipStatus ?? "Relationship Status", geometry: geometry).frame(width: geometry.size.width * 0.95, alignment: .leading).onTapGesture {
+                self.isShowRelationship = true
+            }
                 
-                // Editable name field
-                //Text("First name").frame(width: geometry.size.width, alignment: .leading).foregroundColor(.white)
-                NeumorphicStyleTextField(textField: TextField("", text: $name), imageName: nil, textBinding: $name, placeholderText: self.userCardData.name!, autoCorrect: false).frame(width: geometry.size.width * 0.5)
-                
-                // Editable age field
-                // TODO: Enforce numerals only, no decimals
-                //Text("Age").frame(width: geometry.size.width, alignment: .leading).foregroundColor(.white)
-                // TODO: Put a number picker in here instead and just show the age as a button
-                TextField(String(self.userCardData.age!), text: $age).keyboardType(.numberPad).textFieldStyle(.roundedBorder).font(.system(size: 25)).font(Font.headline.weight(.bold)).frame(width: geometry.size.width * 0.55, alignment: .leading)
-                //NeumorphicStyleTextField(textField: <#T##TextField<Text>#>, imageName: <#T##String?#>, textBinding: <#T##Binding<String>#>, placeholderText: <#T##String#>)
-            }.padding(.leading)
         }.sheet(isPresented: $isShowPhotoLibrary) {
             ImagePicker(sourceType: .photoLibrary, selectedImage: self.$image, userCardData: self.userCardData)
         }.sheet(isPresented: $isShowCamera) {
             ImagePicker(sourceType: .camera, selectedImage: self.$image, userCardData: self.userCardData)
+        }.sheet(isPresented: $isShowSchools) {
+            SelectSchoolView(isShowSchools: $isShowSchools, userCardData: self.userCardData)
+        }
+        .sheet(isPresented: $isShowRelationship) {
+            RelationshipStatusView(isShowRelationship: $isShowRelationship, userCardData: self.userCardData)
+        }
+        .frame(width: geometry.size.width)
+    }
+}
+
+struct SelectSchoolView: View {
+    @State var schoolQuery: String = ""
+    @State var schoolList: [School] = []
+    @State var school: String = ""
+    @Binding var isShowSchools: Bool
+    @ObservedObject var schools = ReadSchoolData()
+    @ObservedObject var userCardData: UserCardData
+    
+    var body: some View {
+        VStack {
+            if self.schoolList != [] {
+                List {
+                    ForEach(self.schoolList, id: \.self) { item in
+                        VStack(alignment: .leading, spacing: 0){
+                            HStack {
+                                Text("\(item.institution)")
+                                Spacer()
+                            }.contentShape(Rectangle())
+                            .onTapGesture {
+                                self.school = item.institution
+                                self.userCardData.writeNewStringValue(attribute: &self.userCardData.school, firebaseRep: UsersFields.SCHOOL, newValue: self.school)
+                                self.isShowSchools = false
+                            }
+                        }
+                    }
+                }
+            }
+            NeumorphicStyleTextField(textField: TextField("", text: $schoolQuery), sfName: "graduationcap", imageName: nil, textBinding: $schoolQuery, placeholderText: "Search for school").padding()
+        }.onChange(of: schoolQuery, perform: { newState in
+            var tempSchools: [School] = []
+            for school in self.schools.schools {
+                if school.institution.lowercased().contains(newState.lowercased()) {
+                    tempSchools.append(school)
+                }
+                if school == self.schools.schools.last {
+                    self.schoolList = tempSchools
+                }
+            }
+        })
+    }
+}
+
+struct RelationshipStatusView: View {
+    @State var relationshipStatus: String = ""
+    @Binding var isShowRelationship: Bool
+    @ObservedObject var userCardData: UserCardData
+    let options: [String] = ["Don't show", "Single", "In a relationship", "Married"]
+    
+    var body: some View {
+        List {
+            ForEach(self.options, id: \.self) {
+                option in
+                HStack {
+                    Text(option)
+                    Spacer()
+                }.contentShape(Rectangle())
+                .onTapGesture {
+                    self.relationshipStatus = option
+                    self.userCardData.writeNewStringValue(attribute: &self.userCardData.relationshipStatus, firebaseRep: UsersFields.RELATIONSHIP_STATUS, newValue: self.relationshipStatus)
+                    self.isShowRelationship = false
+                }
+            }
         }
     }
+    
 }
 
 struct EditableCardExtra: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject var userCardData: UserCardData
-    @Binding var relationshipStatus: String
-    @Binding var occupation: String
+    
+    
     @Binding var instagramPresentAuth: Bool
     @Binding var instagramUser: InstagramUser?
     let geometry: GeometryProxy
@@ -239,17 +324,15 @@ struct EditableCardExtra: View {
     var body: some View {
         // TODO: Add options for removing extra info
         VStack(alignment: .leading) {
-            HStack {
-                Image(systemName: "heart").foregroundColor(.white)
-                Picker(selection: $relationshipStatus, label: Text("Relationship Status")) {
-                    ForEach(relationshipStatuses, id: \.self) {
-                        Text($0).foregroundColor(.white).font(.system(size: 20)).tag(relationshipStatuses.firstIndex(of: $0))
-                    }
-                }.pickerStyle(WheelPickerStyle())
-            }
+//            HStack {
+//                Image(systemName: "heart").foregroundColor(Color("Cyan")).imageScale(.large)
+//                Picker(selection: $relationshipStatus, label: Text("Relationship Status")) {
+//                    ForEach(relationshipStatuses, id: \.self) {
+//                        Text($0).foregroundColor(.white).font(.system(size: 20)).tag(relationshipStatuses.firstIndex(of: $0))
+//                    }
+//                }.pickerStyle(WheelPickerStyle())
+//            }.padding(.leading, geometry.size.width * 0.025)
             
-            NeumorphicStyleTextField(textField: TextField("", text: $occupation), imageName: "briefcase", textBinding: $occupation, placeholderText: self.userCardData.occupation ?? "Job").frame(width: geometry.size.width * 0.5).padding(.leading).padding(.bottom)
-                    
             Button(action: {
                 self.instagramPresentAuth.toggle()
             }) {
@@ -267,7 +350,7 @@ struct EditableCardExtra: View {
                             Text("Link Instagram").foregroundColor(Color("Cyan"))
                         }
                     }
-                }.padding(.leading)
+                }.frame(width: geometry.size.width, alignment: .leading).padding(.leading, geometry.size.width * 0.025)
             }
         }.sheet(isPresented: self.$instagramPresentAuth) {
             WebView(presentAuth: self.$instagramPresentAuth, InstagramUserData: self.$instagramUser, instagramApi: self.$instagramApi)
@@ -525,13 +608,15 @@ extension Color {
 
 struct NeumorphicStyleTextField: View {
     var textField: TextField<Text>
+    var sfName: String?
     var imageName: String?
     @Binding var textBinding: String
     let placeholderText: String
     var autoCorrect: Bool
     
-    init(textField: TextField<Text>, imageName: String?, textBinding: Binding<String>, placeholderText: String, autoCorrect: Bool = true) {
+    init(textField: TextField<Text>, sfName: String?, imageName: String?, textBinding: Binding<String>, placeholderText: String, autoCorrect: Bool = true) {
         self.textField = textField
+        self.sfName = sfName
         self.imageName = imageName
         _textBinding = textBinding
         self.placeholderText = placeholderText
@@ -540,9 +625,15 @@ struct NeumorphicStyleTextField: View {
     
     var body: some View {
         HStack {
-            if imageName != nil {
-                Image(systemName: imageName!)
+            if sfName != nil {
+                Image(systemName: sfName!)
                     .foregroundColor(.darkShadow)
+            }
+            else {
+                if imageName != nil {
+                    Image(imageName!)
+                        .foregroundColor(.white)
+                }
             }
             textField.placeholder(when: textBinding.isEmpty) {Text(self.placeholderText).foregroundColor(.gray)}.autocorrectionDisabled(!autoCorrect)
             }
@@ -552,6 +643,79 @@ struct NeumorphicStyleTextField: View {
             .cornerRadius(6)
             .shadow(color: Color("Cyan"), radius: 3, x: 2, y: 2)
             .shadow(color: Color("Cyan"), radius: 3, x: -2, y: -2)
-
         }
+}
+
+struct NeumorphicStyleButton: View {
+    var sfName: String?
+    var imageName: String?
+    let placeholderText: String
+    let geometry: GeometryProxy
+    
+    init(sfName: String?, imageName: String?, placeholderText: String, geometry: GeometryProxy) {
+        self.sfName = sfName
+        self.imageName = imageName
+        self.placeholderText = placeholderText
+        self.geometry = geometry
+    }
+    
+    var body: some View {
+        HStack {
+            if sfName != nil {
+                Image(systemName: sfName!)
+                    .foregroundColor(.darkShadow)
+            }
+            else {
+                if imageName != nil {
+                    Image(imageName!)
+                        .foregroundColor(.white)
+                }
+            }
+            Text(self.placeholderText).foregroundColor(.gray)
+            }
+            .padding()
+            .foregroundColor(.white)
+            .background(Color.black)
+            .cornerRadius(6)
+            .shadow(color: Color("Cyan"), radius: 3, x: 2, y: 2)
+            .shadow(color: Color("Cyan"), radius: 3, x: -2, y: -2)
+        }
+}
+
+struct School: Codable, Hashable {
+    enum CodingKeys: CodingKey {
+        case institution
+    }
+    
+    var id = UUID()
+    var institution: String
+}
+
+class ReadSchoolData: ObservableObject {
+    @Published var schools = [School]()
+    
+    init(){
+        loadData()
+    }
+    
+    func loadData() {
+        guard let url = Bundle.main.url(forResource: "us_institutions", withExtension: "json")
+        else {
+            print("Can't find file")
+            return
+        }
+
+        do {
+            let data = try! Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            let schools = try? decoder.decode([School].self, from: data)
+            if schools != nil {
+                self.schools = schools!
+            }
+        // TODO: Show some kind of error if this happens
+            
+        } catch let jsonError {
+            print(jsonError)
+        }
+    }
 }

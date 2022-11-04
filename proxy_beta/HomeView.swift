@@ -12,11 +12,11 @@ import GeoFire
 import CoreLocation
 
 
-let radiusInM: Double = 10  // TODO: Make this smaller eventually
+let radiusInM: Double = 50  // TODO: Make this smaller eventually
 
 
 struct HomeView: View {
-    var locationManager = UserLocation.shared
+    @ObservedObject var locationManager = UserLocation.shared
     var db = Firestore.firestore()
     @EnvironmentObject var session: SessionStore
     @ObservedObject var closeUserData: CloseUserData
@@ -192,7 +192,7 @@ class CloseUserData: ObservableObject {
                     // most will match
                     let distance = GFUtils.distance(from: centerPoint, to: coordinates)
                     if distance <= radiusInM {
-                        newUserCards.append(UserCardData(uid: document.documentID, name: document.get(Users.fields.DISPLAY_NAME) as? String, age: document.get(Users.fields.AGE) as? Int, photoURL: document.get(Users.fields.PHOTO_URL) as? String, relationshipStatus: document.get(Users.fields.RELATIONSHIP_STATUS) as? String, occupation: document.get(Users.fields.OCCUPATION) as? String, instagramUsername: document.get(Users.fields.INSTAGRAM_USERNAME) as? String))
+                        newUserCards.append(UserCardData(uid: document.documentID, name: document.get(Users.fields.DISPLAY_NAME) as? String, age: document.get(Users.fields.AGE) as? Int, photoURL: document.get(Users.fields.PHOTO_URL) as? String, relationshipStatus: document.get(Users.fields.RELATIONSHIP_STATUS) as? String, occupation: document.get(Users.fields.OCCUPATION) as? String, company: document.get(Users.fields.COMPANY) as? String, school: document.get(Users.fields.SCHOOL) as? String, instagramUsername: document.get(Users.fields.INSTAGRAM_USERNAME) as? String))
                     }
                     if last && document == documents.last {
                         print("Updating closest users")
@@ -248,9 +248,11 @@ class UserCardData: Hashable, ObservableObject {
     var photoURL: String?
     var relationshipStatus: String?
     var occupation: String?
+    var company: String?
+    var school: String?
     var instagramUsername: String?
     
-    init (uid: String, name: String?, age: Int?, photoURL: String?, relationshipStatus: String?, occupation: String?, instagramUsername: String?) {
+    init (uid: String, name: String?, age: Int?, photoURL: String?, relationshipStatus: String?, occupation: String?, company: String?, school: String?, instagramUsername: String?) {
         self.uid = uid
         self.name = name
         self.age = age
@@ -258,6 +260,8 @@ class UserCardData: Hashable, ObservableObject {
         self.initializePhoto()
         self.relationshipStatus = relationshipStatus
         self.occupation = occupation
+        self.company = company
+        self.school = school
         self.instagramUsername = instagramUsername
     }
     
@@ -315,6 +319,8 @@ class UserCardData: Hashable, ObservableObject {
                 self.relationshipStatus = doc?.get(Users.fields.RELATIONSHIP_STATUS) as? String
                 self.occupation = doc?.get(Users.fields.OCCUPATION) as? String
                 self.instagramUsername = doc?.get(Users.fields.INSTAGRAM_USERNAME) as? String
+                self.company = doc?.get(Users.fields.COMPANY) as? String
+                self.school = doc?.get(Users.fields.SCHOOL) as? String
             }
         })
     }
@@ -448,15 +454,24 @@ struct UserCard: View {
                     VStack(alignment: .leading) {
                         if self.userCardData.relationshipStatus != nil && self.userCardData.relationshipStatus != "Don't show" {
                             HStack {
-                                Image(systemName: "heart").foregroundColor(.white)
+                                Image(systemName: "heart").foregroundColor(Color("Cyan"))
                                 Text(self.userCardData.relationshipStatus!).foregroundColor(.white).font(.system(size: 20))
                             }
                         }
+                        
+                        let jobDescrip = "\(self.userCardData.occupation == nil ? "" : self.userCardData.occupation!)\(self.userCardData.company != nil && self.userCardData.occupation != nil ? " at \(self.userCardData.company!)" : "")"
                        
-                        if self.userCardData.occupation != nil {
+                        if jobDescrip != "" {
                             HStack {
-                                Image(systemName: "briefcase").foregroundColor(.white)
-                                Text(self.userCardData.occupation!).foregroundColor(.white).font(.system(size: 20))
+                                Image(systemName: "briefcase").foregroundColor(Color("Cyan"))
+                                Text(jobDescrip).foregroundColor(.white).font(.system(size: 20))
+                            }
+                        }
+                        
+                        if self.userCardData.school != nil {
+                            HStack {
+                                Image(systemName: "graduationcap").foregroundColor(Color("Cyan"))
+                                Text(self.userCardData.school!).foregroundColor(.white).font(.system(size: 20))
                             }
                         }
                         

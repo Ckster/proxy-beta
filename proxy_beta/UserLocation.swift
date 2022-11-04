@@ -18,7 +18,7 @@ import FirebaseMessaging
 /**
  Controls the geofencing around each supported crossing and the sending of local notifications when a user is in range of an event
  */
-class UserLocation: NSObject, CLLocationManagerDelegate {
+class UserLocation: NSObject, CLLocationManagerDelegate, ObservableObject {
     static let shared = UserLocation()
     
     let db = Firestore.firestore()
